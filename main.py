@@ -1,19 +1,11 @@
 import rumps
-#import os
-mining_status = False
-def check_mining_status():
-    if mining_status == False:
-        return "Start Mining"
-    else:
-        return "Stop Mining"
-name_status = check_mining_status()
+import subprocess
+import json
+from lib import *
 class main(rumps.App):
     @rumps.clicked(name_status)
     def mining_controller(self, _):
-        if mining_status == True:
-            mining_status = False
-        else:
-            mining_status = True
+
 #    def onoff(self, sender):
 #        sender.state = not sender.state
 

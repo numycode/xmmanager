@@ -1,8 +1,1 @@
-{
-  "tor": 1,
-  "tor_proxy": "socks5://127.0.0.1:9050",
-  "xmrig_path": "./xmrig",
-  "wallet_address": "changeme!",
-  "server_address": "changeme!",
-  "server_port": "3333"
-}
+{"path": "./xmrig","args":"--cpu-priority=1","kill-command": "pkill xmrig"}
