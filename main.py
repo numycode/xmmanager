@@ -1,21 +1,23 @@
 import rumps
-import subprocess
-import json
+import lib
 from lib import *
+xmrig_status = "False"
 class main(rumps.App):
-    @rumps.clicked(name_status)
+    @rumps.clicked(toggler(xmrig_status))
     def mining_controller(self, _):
-
-#    def onoff(self, sender):
-#        sender.state = not sender.state
-
-    @rumps.clicked("Say hi")
-    def sayhi(self, _):
-        rumps.notification("Awesome title", "amazing subtitle", "hi!!1")
-
-    @rumps.clicked("Preferences")
-    def prefs(self, _):
-        rumps.alert("test!")
+        if xmrig_status == "False":
+            xmrig_controller("start")
+        if xmrig_status == "True":
+            xmrig_controller("stop")
+    @rumps.clicked("Quit")
+    def quit(self, _):
+        lib.xmrig_controller("stop")
+        lib.xmrig_controller("exit")
 if __name__ == "__main__":
-    main("XMManager").run()
+    lib.load_config()
+    try:
+        main("XMManager", quit_button=None).run()
+    except:
+        lib.xmrig_controller("stop")
+        exit()
 pass

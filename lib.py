@@ -8,19 +8,19 @@ def load_config():
 def xmrig_controller(command):
     global xmrig_status
     if command == "start":
-        print("> Starting XMRig")
         subprocess.call(config["path"] + " -B " + config["args"], shell=True)
         xmrig_status = "True"
-        print("> Started.")
     elif command == "stop":
-        print("> Exiting XMRig")
         subprocess.call(config["kill-command"], shell=True)
         xmrig_status = "False"
-        print("> Exited.")
-    elif command == "status":
-        print("Is XMRig running?: " + xmrig_status)
     elif command == "exit":
-        print("> Exiting")
         exit(1)
+def toggler(xmrig_status):
+    if xmrig_status == "True":
+        return "Stop XMRig"
+    elif xmrig_status == "False":
+        return "Start XMRig"
+    else:
+        return "ERROR: xmrig_status is not the str True or False"
 if __name__ == __name__:
     pass
