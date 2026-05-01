@@ -1,6 +1,8 @@
 import subprocess
 import json
 
+with open('xmmanager_config.json', 'r') as file:
+    config = json.load(file)
 def xmrig_controller(command):
     global xmrig_status
     if command == "start":
