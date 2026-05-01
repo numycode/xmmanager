@@ -1,10 +1,6 @@
 import subprocess
 import json
 
-def load_config():
-    with open('config.json', 'r') as file:
-        global config
-        config = json.load(file)
 def xmrig_controller(command):
     global xmrig_status
     if command == "start":
@@ -13,8 +9,6 @@ def xmrig_controller(command):
     elif command == "stop":
         subprocess.call(config["kill-command"], shell=True)
         xmrig_status = "False"
-    elif command == "exit":
-        exit(1)
 def toggler(xmrig_status):
     if xmrig_status == "True":
         return "Stop XMRig"

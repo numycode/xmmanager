@@ -12,12 +12,14 @@ class main(rumps.App):
     @rumps.clicked("Quit")
     def quit(self, _):
         lib.xmrig_controller("stop")
-        lib.xmrig_controller("exit")
+        exit()
 if __name__ == "__main__":
-    lib.load_config()
+    with open('config.json', 'r') as file:
+        config = json.load(file)
     try:
         main("XMManager", quit_button=None).run()
-    except:
+    except Exception as e:
+        print("Exeption: " + e)
         lib.xmrig_controller("stop")
         exit()
 pass
