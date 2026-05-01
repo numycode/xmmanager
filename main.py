@@ -14,7 +14,7 @@ class main(rumps.App):
         lib.xmrig_controller("stop")
         exit()
 if __name__ == "__main__":
-    with open('config.json', 'r') as file:
+    with open('xmmanager_config.json', 'r') as file:
         config = json.load(file)
     try:
         main("XMManager", quit_button=None).run()
@@ -22,4 +22,4 @@ if __name__ == "__main__":
         print("Exeption: " + e)
         lib.xmrig_controller("stop")
         exit()
-pass
+pass 
