@@ -18,5 +18,5 @@ def toggler(xmrig_status):
         return "Start XMRig"
     else:
         return "ERROR: xmrig_status is not the str True or False"
-if __name__ == __name__:
+if __name__ == "__main__":
     pass
