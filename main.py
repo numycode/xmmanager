@@ -28,7 +28,7 @@ class main(rumps.App):
       xmrig_status = xmrig_start(xmrig_status)
     if xmrig_status == True:
       xmrig_status = xmrig_stop(xmrig_status)
-    @rumps.clicked("Quit")
+  @rumps.clicked("Quit")
   def quit(self, _):
     xmrig_status = xmrig_stop(xmrig_status)
     exit()
