@@ -23,6 +23,7 @@ def xmrig_stop(xmrig_status):
 class main(rumps.App):
   @rumps.clicked(str(xmrig_status))
   def mining_controller(self, sender):
+    global xmrig_status
     sender.state = not sender.state
     xmrig_status = not xmrig_status
     if xmrig_status == False:
@@ -31,6 +32,7 @@ class main(rumps.App):
       xmrig_status = xmrig_stop(xmrig_status)
   @rumps.clicked("Quit")
   def quit(self, _):
+    global xmrig_status
     xmrig_status = xmrig_stop(xmrig_status)
     exit()
 if __name__ == "__main__":
