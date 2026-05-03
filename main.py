@@ -26,9 +26,9 @@ class main(rumps.App):
     sender.state = not sender.state
     xmrig_status = not xmrig_status
     print(xmrig_status)
-    if xmrig_status == False:
-      xmrig_status = xmrig_start(xmrig_status)
     if xmrig_status == True:
+      xmrig_status = xmrig_start(xmrig_status)
+    if xmrig_status == False:
       print("runing")
       xmrig_status = xmrig_stop(xmrig_status)
   @rumps.clicked("Quit")
