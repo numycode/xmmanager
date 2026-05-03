@@ -7,13 +7,13 @@ xmrig_status = False
 
 def xmrig_start(xmrig_status):
   try:
-    subprocess.Popen(config["path"] + " -B " + config["args"], shell=True)
+    subprocess.Popen([config["path"], "-B"] + config["args"].split())
     return True
   except Exception:
     traceback.print_exc()
 def xmrig_stop(xmrig_status):
   try:
-    subprocess.Popen(config["kill-command"], shell=True)
+    subprocess.Popen(config["kill-command"].split())
     return False
   except Exception:
     traceback.print_exc()
