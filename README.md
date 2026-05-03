@@ -1,5 +1,9 @@
 # xmmanager
-XMManager is an easy way to manage XMRig on your mac. (menu bar version coming soon!)
+XMManager is an easy way to manage XMRig on your mac. It currently allows you to toggle XMRig for easy use of the miner.
+
+# Install
+
+
 
 ## This project is now on Codeberg
 

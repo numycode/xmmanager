@@ -1,7 +1,7 @@
 import rumps
 import json
 import subprocess
-import traceback
+import sys
 global xmrig_status
 xmrig_status = False
 
@@ -19,7 +19,7 @@ def xmrig_stop(xmrig_status):
 
 
 class main(rumps.App):
-  @rumps.clicked(str(xmrig_status))
+  @rumps.clicked("Toggle XMRig")
   def mining_controller(self, sender):
     global xmrig_status
     sender.state = not sender.state
@@ -27,18 +27,19 @@ class main(rumps.App):
     print(xmrig_status)
     if xmrig_status == True:
       xmrig_status = xmrig_start(xmrig_status)
-    if xmrig_status == False:
-      print("runing")
+    elif xmrig_status == False:
+      print("Running")
       xmrig_status = xmrig_stop(xmrig_status)
   @rumps.clicked("Quit")
   def quit(self, _):
     global xmrig_status
     xmrig_status = xmrig_stop(xmrig_status)
-    exit()
+    rumps.quit_application()
+    sys.exit()
 if __name__ == "__main__":
     try:
       main("XMManager", quit_button=None).run()
     except Exception as e:
-      print("Exeption: " + e)
+      print(f"Exception: {e}")
       xmrig_status = xmrig_stop(xmrig_status)
-      exit()
+      sys.exit()
