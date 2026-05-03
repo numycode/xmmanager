@@ -2,7 +2,7 @@ import rumps
 import json
 import subprocess
 import traceback
-xmrig_status = False
+global xmrig_status = False
 
 def xmrig_start(xmrig_status):
   try:
