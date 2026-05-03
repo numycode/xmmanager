@@ -7,7 +7,7 @@ xmrig_status = False
 
 def xmrig_start(xmrig_status):
   try:
-    subprocess.Popen([config["path"], "-B"] + config["args"].split())
+    subprocess.Popen([config["path"] + "-B" + config["args"]].split())
     return True
   except Exception:
     traceback.print_exc()
