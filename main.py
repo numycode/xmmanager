@@ -25,13 +25,13 @@ class main(rumps.App):
     sender.state = not sender.state
     xmrig_status = not xmrig_status
     if xmrig_status == False:
-      xmrig_status = xmrig_start(xmrig_status)
+      xmrig_status = xmrig_start(xmrig_status)
     if xmrig_status == True:
       xmrig_status = xmrig_stop(xmrig_status)
     @rumps.clicked("Quit")
-   def quit(self, _):
-     xmrig_status = xmrig_stop(xmrig_status)
-     exit()
+  def quit(self, _):
+    xmrig_status = xmrig_stop(xmrig_status)
+    exit()
 if __name__ == "__main__":
   with open('xmmanager_config.json', 'r') as file:
     config = json.load(file)
