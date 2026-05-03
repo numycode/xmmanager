@@ -1,44 +1,44 @@
 import rumps
 import json
 import subprocess
-xmrig_status = "False"
+import traceback
+global xmrig_status
+xmrig_status = False
 
-def xmrig_controller(command):
-    global xmrig_status
-    if command == "start":
-        subprocess.call(config["path"] + " -B " + config["args"], shell=True)
-        xmrig_status = "True"
-    elif command == "stop":
-        subprocess.call(config["kill-command"], shell=True)
-        xmrig_status = "False"
+def xmrig_start(xmrig_status):
+  with open('xmmanager_config.json', 'r') as file:
+    config = json.load(file)
+  subprocess.Popen(config["path"] + " -B " + config["args"], shell=True)
+  return True
+def xmrig_stop(xmrig_status):
+  with open('xmmanager_config.json', 'r') as file:
+    config = json.load(file)
+  subprocess.Popen(config["kill-command"], shell=True)
+  return False
 
-def toggler(xmrig_status):
-    if xmrig_status == "True":
-        return "Stop XMRig"
-    elif xmrig_status == "False":
-        return "Start XMRig"
-    else:
-        return "ERROR: xmrig_status is not the str True or False"
+
 
 class main(rumps.App):
-    @rumps.clicked(toggler(xmrig_status))
-    def mining_controller(self, sender):
-        sender.state = not sender.state
-        if xmrig_status == "False":
-            xmrig_controller("start")
-        if xmrig_status == "True":
-            xmrig_controller("stop")
-    @rumps.clicked("Quit")
-    def quit(self, _):
-        xmrig_controller("stop")
-        exit()
+  @rumps.clicked(str(xmrig_status))
+  def mining_controller(self, sender):
+    global xmrig_status
+    sender.state = not sender.state
+    xmrig_status = not xmrig_status
+    print(xmrig_status)
+    if xmrig_status == True:
+      xmrig_status = xmrig_start(xmrig_status)
+    if xmrig_status == False:
+      print("runing")
+      xmrig_status = xmrig_stop(xmrig_status)
+  @rumps.clicked("Quit")
+  def quit(self, _):
+    global xmrig_status
+    xmrig_status = xmrig_stop(xmrig_status)
+    exit()
 if __name__ == "__main__":
-    with open('xmmanager_config.json', 'r') as file:
-        config = json.load(file)
     try:
-        main("XMManager", quit_button=None).run()
+      main("XMManager", quit_button=None).run()
     except Exception as e:
-        print("Exeption: " + e)
-        xmrig_controller("stop")
-        exit()
-pass 
+      print("Exeption: " + e)
+      xmrig_status = xmrig_stop(xmrig_status)
+      exit()
