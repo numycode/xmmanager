@@ -7,6 +7,8 @@ xmrig_status = False
 
 def xmrig_start(xmrig_status):
   try:
+    with open('xmmanager_config.json', 'r') as file:
+      config = json.load(file)
     print([config["path"] + "-B" + config["args"]].split())
     subprocess.Popen([config["path"] + "-B" + config["args"]].split())
     return True
@@ -14,6 +16,8 @@ def xmrig_start(xmrig_status):
     traceback.print_exc()
 def xmrig_stop(xmrig_status):
   try:
+    with open('xmmanager_config.json', 'r') as file:
+      config = json.load(file)
     subprocess.Popen(config["kill-command"].split())
     return False
   except Exception:
@@ -39,8 +43,6 @@ class main(rumps.App):
     xmrig_status = xmrig_stop(xmrig_status)
     exit()
 if __name__ == "__main__":
-  with open('xmmanager_config.json', 'r') as file:
-    config = json.load(file)
     try:
       main("XMManager", quit_button=None).run()
     except Exception as e:
