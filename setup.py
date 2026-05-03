@@ -7,7 +7,8 @@ OPTIONS = {
     'plist': {
         'LSUIElement': True,
     },
-    'packages': ['rumps', 'PyObjC'],
+    'packages': ['rumps'],
+    'includes': ['Cocoa'],
 }
 
 setup(

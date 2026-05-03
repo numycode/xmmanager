@@ -1,1 +1,1 @@
-{"path": "./xmrig","args":"--cpu-priority=1","kill-command": "pkill xmrig"}
+{"args":"--cpu-priority=1","kill-command": "pkill xmrig"}
