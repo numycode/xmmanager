@@ -6,22 +6,16 @@ global xmrig_status
 xmrig_status = False
 
 def xmrig_start(xmrig_status):
-  try:
-    with open('xmmanager_config.json', 'r') as file:
-      config = json.load(file)
-    print([config["path"] + "-B" + config["args"]].split())
-    subprocess.Popen([config["path"] + "-B" + config["args"]].split())
-    return True
-  except Exception:
-    traceback.print_exc()
+  with open('xmmanager_config.json', 'r') as file:
+    config = json.load(file)
+  print([config["path"] + "-B" + config["args"]].split())
+  subprocess.Popen([config["path"] + "-B" + config["args"]].split())
+  return True
 def xmrig_stop(xmrig_status):
-  try:
-    with open('xmmanager_config.json', 'r') as file:
-      config = json.load(file)
-    subprocess.Popen(config["kill-command"].split())
-    return False
-  except Exception:
-    traceback.print_exc()
+  with open('xmmanager_config.json', 'r') as file:
+    config = json.load(file)
+  subprocess.Popen(config["kill-command"].split())
+  return False
 
 
 
