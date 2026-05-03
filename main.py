@@ -8,13 +8,12 @@ xmrig_status = False
 def xmrig_start(xmrig_status):
   with open('xmmanager_config.json', 'r') as file:
     config = json.load(file)
-  print([config["path"] + "-B" + config["args"]].split())
-  subprocess.Popen([config["path"] + "-B" + config["args"]].split())
+  subprocess.Popen(config["path"] + " -B " + config["args"], shell=True)
   return True
 def xmrig_stop(xmrig_status):
   with open('xmmanager_config.json', 'r') as file:
     config = json.load(file)
-  subprocess.Popen(config["kill-command"].split())
+  subprocess.Popen(config["kill-command"], shell=True)
   return False
 
 
