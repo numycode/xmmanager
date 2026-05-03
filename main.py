@@ -27,6 +27,7 @@ class main(rumps.App):
     global xmrig_status
     sender.state = not sender.state
     xmrig_status = not xmrig_status
+    print(xmrig_status)
     if xmrig_status == False:
       xmrig_status = xmrig_start(xmrig_status)
     if xmrig_status == True:
