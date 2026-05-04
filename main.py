@@ -6,18 +6,17 @@ import os
 global xmrig_status
 xmrig_status = False
 
-def xmrig_start(xmrig_status):
+def xmrig_start():
   with open('xmmanager_config.json', 'r') as file:
     config = json.load(file)
-  subprocess.Popen(xmrig_path + " -B " + config["args"], shell=True)
+  subprocess.Popen(xmrig_path + " " + config["args"], shell=True)
   return True
-def xmrig_stop(xmrig_status):
-  with open('xmmanager_config.json', 'r') as file:
-    config = json.load(file)
-  subprocess.Popen(config["kill-command"], shell=True)
+def xmrig_stop():
+  subprocess.Popen("pkill xmrig", shell=True)
   return False
 
 def adjacent_to_app(name):
+    # TODO: get rid of that ai slop below
     if getattr(sys, "frozen", False):
         bundle = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
         app_parent = os.path.dirname(bundle)
@@ -34,16 +33,14 @@ class main(rumps.App):
     global xmrig_status
     sender.state = not sender.state
     xmrig_status = not xmrig_status
-    print(xmrig_status)
-    if xmrig_status == True:
-      xmrig_status = xmrig_start(xmrig_status)
+    if xmrig_status:
+      xmrig_status = xmrig_start()
     elif xmrig_status == False:
-      print("Running")
-      xmrig_status = xmrig_stop(xmrig_status)
+      xmrig_status = xmrig_stop()
   @rumps.clicked("Quit")
   def quit(self, _):
     global xmrig_status
-    xmrig_status = xmrig_stop(xmrig_status)
+    xmrig_status = xmrig_stop()
     rumps.quit_application()
     sys.exit()
 if __name__ == "__main__":
@@ -51,5 +48,5 @@ if __name__ == "__main__":
       main("XMManager", quit_button=None).run()
     except Exception as e:
       print(f"Exception: {e}")
-      xmrig_status = xmrig_stop(xmrig_status)
+      xmrig_status = xmrig_stop()
       sys.exit()
