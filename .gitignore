@@ -209,4 +209,8 @@ __marimo__/
 # DS_Store because macOS is weird
 .DS_Store
 
+# obsidian's crap
 .obsidian
+
+# jetbrains' crap
+.idea

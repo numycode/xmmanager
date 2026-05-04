@@ -25,8 +25,16 @@ Quit does as you would expect, it quits the program and also quits XMRig. Toggle
 
 ![The same menu as the last picture, but "Toggle XMRig" has a check mark next to it](images/xmmanager-open-on.png)
 
-The check mark signifies that XMRig is running. You can click it again and XMRig will be killed
+The check mark signifies that XMRig is running. You can click it again and XMRig will be killed.<br>
+Watch the video [here](https://cdn.hackclub.com/019df076-974f-7d73-9d7f-e3ed8fa12d0d/xmmanager.mp4) to see XMManager in action.<br>
 And that is it! Have fun mining!
+
+## AI Notice
+AI was used in this repository only to make the GitHub Actions runner and a function in the code I'll replace later. The rest is human-written.
+
+## Contributers
+- [@rocklake](https://codeberg.org/rocklake/) ([rocklake's github](https://github.com/rocklake/)) - Helped get the code into a usable state since the whole codebase was crumbling 
+
 ## This project is now on Codeberg
 
 You can now find this project at [CodeBerg](https://codeberg.org/numycode/xmmanager/) instead.
