@@ -25,7 +25,13 @@ Quit does as you would expect, it quits the program and also quits XMRig. Toggle
 
 ![The same menu as the last picture, but "Toggle XMRig" has a check mark next to it](images/xmmanager-open-on.png)
 
-The check mark signifies that XMRig is running. You can click it again and XMRig will be killed
+The check mark signifies that XMRig is running. You can click it again and XMRig will be killed.
+See the video below to see usage:
+
+<video width="320" height="240" controls>
+  <source src="https://cdn.hackclub.com/019df076-974f-7d73-9d7f-e3ed8fa12d0d/xmmanager.mp4" type="video/mp4">
+</video>
+
 And that is it! Have fun mining!
 
 ## AI Notice
