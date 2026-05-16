@@ -1,5 +1,5 @@
-# xmmanager
-XMManager is an easy way to manage XMRig on your mac. It currently allows you to toggle XMRig for easy use of the miner.
+# XMManager
+XMManager is an easy way to manage XMRig on your Mac. It currently allows you to toggle XMRig for easy use of the miner.
 
 # Install
 ### Using prebuilt:
@@ -32,10 +32,10 @@ And that is it! Have fun mining!
 ## AI Notice
 AI was used in this repository only to make the GitHub Actions runner and a function in the code I'll replace later. The rest is human-written.
 
-## Contributers
-- [@rocklake](https://codeberg.org/rocklake/) ([rocklake's github](https://github.com/rocklake/)) - Helped get the code into a usable state since the whole codebase was crumbling 
+## Contributors
+- [@rocklake](https://codeberg.org/rocklake/) ([rocklake's GitHub](https://github.com/rocklake/)) - Helped get the code into a usable state since the whole codebase was crumbling 
 
-## This project is now on Codeberg
+## This project is now on CodeBerg
 
 You can now find this project at [CodeBerg](https://codeberg.org/numycode/xmmanager/) instead.
 
