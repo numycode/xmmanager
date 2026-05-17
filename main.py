@@ -34,7 +34,10 @@ class Main(rumps.App):
 
     @rumps.clicked("Quit")
     def quit(self, _):
-        libxm.kill()
+        libxm.xmrig_stop()
+        logger.info("Stopped XMRig")
+        logger.info("Exiting...")
+        sys.exit()
 
 
 if __name__ == "__main__":
@@ -43,4 +46,7 @@ if __name__ == "__main__":
         Main("XMManager", quit_button=None).run()
     except Exception as e:
         logger.exception(f"Exception: {e}")
-        libxm.kill()
+        libxm.xmrig_stop()
+        logger.info("Stopped XMRig")
+        logger.info("Exiting...")
+        sys.exit()
