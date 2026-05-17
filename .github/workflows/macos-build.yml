@@ -1,37 +1,18 @@
-name: macOS build
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-
-jobs:
-  build-macos:
-    runs-on: macos-latest
-    strategy:
       matrix:
         python: [3.14]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
       - name: Upgrade packaging tools
-        run: python -m pip install --upgrade pip setuptools wheel py2app rumps
+        run: python -m pip install --upgrade pip "setuptools<81" wheel py2app rumps
+
+      - name: Install runtime dependencies
+        run: python -m pip install -r requirements.txt
 
       - name: Install project (PEP 517)
         run: python -m pip install --use-pep517 .
-
-      - name: Build macOS .app with py2app
-        run: |
-          python -m pip install py2app
-          python3 setup.py py2app
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-app
-          path: dist/
