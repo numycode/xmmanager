@@ -1,3 +1,14 @@
+name: macOS build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    strategy:
       matrix:
         python: [3.14]
     steps:
@@ -16,3 +27,14 @@
 
       - name: Install project (PEP 517)
         run: python -m pip install --use-pep517 .
+
+      - name: Build macOS .app with py2app
+        run: |
+          python -m pip install py2app
+          python3 setup.py py2app
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: dist/
