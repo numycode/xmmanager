@@ -1,3 +1,5 @@
+import sys
+
 from setuptools import Distribution, setup
 
 APP = ['main.py']
@@ -12,10 +14,11 @@ OPTIONS = {
 }
 
 class Py2AppDistribution(Distribution):
-    """Clear install_requires for py2app builds to avoid distutils errors."""
+    """Clear install_requires for py2app to avoid DistutilsOptionError."""
     def finalize_options(self):
         super().finalize_options()
-        self.install_requires = []
+        if "py2app" in sys.argv:
+            self.install_requires = []
 
 
 setup(
