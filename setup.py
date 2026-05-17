@@ -12,6 +12,7 @@ OPTIONS = {
 }
 
 class Py2AppDistribution(Distribution):
+    """Clear install_requires for py2app builds to avoid distutils errors."""
     def finalize_options(self):
         super().finalize_options()
         self.install_requires = []
