@@ -1,7 +1,7 @@
 [project]
 name = "xmmanager-mb"
 version = "0.1.0"
-requires-python = "==3.12.13"
+requires-python = "~=3.12.13"
 dependencies = [
     "libxmmanager>=0.1.5",
     "rumps>=0.4.0",
