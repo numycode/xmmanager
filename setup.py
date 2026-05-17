@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import Distribution, setup
 
 APP = ['main.py']
 DATA_FILES = ['']
@@ -11,8 +11,15 @@ OPTIONS = {
     'includes': ['Cocoa'],
 }
 
+class Py2AppDistribution(Distribution):
+    def finalize_options(self):
+        super().finalize_options()
+        self.install_requires = []
+
+
 setup(
     app=APP,
     options={'py2app': OPTIONS},
+    distclass=Py2AppDistribution,
     setup_requires=['py2app'],
 )
