@@ -9,12 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 def adjacent_to_app(name):
+    # TODO: get rid of that ai slop below
     if getattr(sys, "frozen", False):
-        macos_dir = os.path.dirname(sys.executable)
-        app_bundle = os.path.abspath(os.path.join(macos_dir, "..", ".."))
-        app_parent = os.path.dirname(app_bundle)
+        bundle = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
+        app_parent = os.path.dirname(bundle)
         return os.path.join(app_parent, name)
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
+    return os.path.join(os.path.dirname(__file__), name)
 
 
 xmrig_path = adjacent_to_app("xmrig")
