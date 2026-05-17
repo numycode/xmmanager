@@ -1,9 +1,12 @@
+[build-system]
+requires = ["setuptools>=61", "wheel", "py2app>=0.27"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "xmmanager-mb"
 version = "0.1.0"
-requires-python = "~=3.12.13"
+requires-python = ">=3.12,<4"
 dependencies = [
-    "libxmmanager>=0.1.5",
-    "rumps>=0.4.0",
-    "setuptools>=82.0.1",
+  "libxmmanager>=0.1.5",
+  "rumps>=0.4.0",
 ]
