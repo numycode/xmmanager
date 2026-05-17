@@ -29,7 +29,7 @@ jobs:
         run: python -m pip install --use-pep517 .
 
       - name: Build macOS .app with py2app
-        run: python -m py2app.build
+        run: python -m py2app
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
