@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 #   return True
 # def xmrig_stop():
 #   subprocess.Popen("pkill xmrig", shell=True)
-#   return False
+#   return Falseo
 
 def adjacent_to_app(name):
     # TODO: get rid of that ai slop below
