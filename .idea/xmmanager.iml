@@ -5,7 +5,8 @@
       <sourceFolder url="file://$MODULE_DIR$/dist/xmmanager.app/Contents/Resources/lib/python3.12" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
     </content>
-    <orderEntry type="jdk" jdkName="uv (xmmanager)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="uv (xmmanager-mb)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="libxmmanager" />
   </component>
 </module>
