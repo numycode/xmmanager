@@ -20,7 +20,7 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Upgrade packaging tools
-        run: python -m pip install --upgrade pip "setuptools<81" wheel py2app rumps
+        run: python -m pip install --upgrade pip "setuptools>=61,<79" wheel py2app rumps
 
       - name: Install runtime dependencies
         run: python -m pip install -r requirements.txt
@@ -29,9 +29,7 @@ jobs:
         run: python -m pip install --use-pep517 .
 
       - name: Build macOS .app with py2app
-        run: |
-          python -m pip install py2app
-          python3 setup.py py2app
+        run: python -m py2app
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

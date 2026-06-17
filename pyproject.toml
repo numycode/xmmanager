@@ -11,3 +11,16 @@ dependencies = [
     "rumps>=0.4.0",
     "wheel>=0.47.0",
 ]
+
+[tool.py2app]
+script = "main.py"
+argv_emulation = true
+packages = ["rumps"]
+includes = ["Cocoa"]
+excludes = ["tkinter", "test"]
+
+[tool.py2app.plist]
+CFBundleName = "XMManager"
+CFBundleShortVersionString = "0.1.0"
+CFBundleIdentifier = "dev.numycode.xmmanager"
+LSUIElement = true
