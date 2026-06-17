@@ -3,5 +3,5 @@ pyobjc-core~=12.1
 pyobjc-framework-cocoa~=12.1
 py2app~=0.28.10
 wheel
-setuptools>=61,<80
+setuptools>=61,<79
 libxmmanager
