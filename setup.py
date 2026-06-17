@@ -12,6 +12,7 @@ OPTIONS = {
     },
     "packages": ["rumps"],
     "includes": ["Cocoa"],
+    "excludes": ["tkinter", "test"],
 }
 
 if __name__ == "__main__":

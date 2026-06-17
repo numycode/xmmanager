@@ -1,12 +1,15 @@
 import rumps
-import sys
 import os
+import sys
 import logging
-import libxmmanager as libxm
+import subprocess
 
 xmrig_status = False
 logger = logging.getLogger(__name__)
 
+def init(filename="xmmanager.log"):
+    logging.basicConfig(filename=filename, level=logging.INFO)
+    logger.info("Initialized logger")
 
 def adjacent_to_app(name):
     # TODO: get rid of that ai slop below
@@ -20,7 +23,6 @@ def adjacent_to_app(name):
 xmrig_path = adjacent_to_app("xmrig")
 xmrig_command = [xmrig_path, "--cpu-priority=1"]
 
-
 class Main(rumps.App):
     @rumps.clicked("Toggle XMRig")
     def mining_controller(self, sender):
@@ -28,25 +30,34 @@ class Main(rumps.App):
         sender.state = not sender.state
         xmrig_status = not xmrig_status
         if xmrig_status:
-            xmrig_status = libxm.xmrig_start(xmrig_command)
+            try:
+                xmrig = subprocess.Popen(xmrig_command)
+                xmrig_status = (xmrig is not None and xmrig.poll() is None)
+            except Exception as e:
+                logger.error(f"Error at xmrig_start: {e}")
+            logger.info("Started XMRig")
+            return True
         elif not xmrig_status:
-            xmrig_status = libxm.xmrig_stop()
+            subprocess.Popen(["pkill", "xmrig"])
+            logger.info("Stopped XMRig")
+            xmrig_status = False
 
     @rumps.clicked("Quit")
-    def quit(self, _):
-        libxm.xmrig_stop()
+    def on_quit(self, _):
+        subprocess.Popen(["pkill", "xmrig"])
         logger.info("Stopped XMRig")
         logger.info("Exiting...")
-        sys.exit()
+        rumps.quit_application()
+        sys.exit(0)
 
 
 if __name__ == "__main__":
     try:
-        libxm.init()
+        init()
         Main("XMManager", quit_button=None).run()
     except Exception as e:
         logger.exception(f"Exception: {e}")
-        libxm.xmrig_stop()
+        subprocess.Popen(["pkill", "xmrig"])
         logger.info("Stopped XMRig")
-        logger.info("Exiting...")
-        sys.exit()
+        logger.info("Force exiting...")
+        os._exit(0)
