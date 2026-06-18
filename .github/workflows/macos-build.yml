@@ -25,11 +25,11 @@ jobs:
       - name: Install runtime dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Install project (PEP 517)
-        run: python -m pip install --use-pep517 .
+      - name: Install project
+        run: python -m pip install .
 
       - name: Build macOS .app with py2app
-        run: python -m py2app
+        run: python setup.py py2app
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
