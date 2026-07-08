@@ -34,22 +34,92 @@ def init(filename="xmmanager.log"):
     logger.info("Initialized logger")
 
 
-def adjacent_to_app(name):
-    # TODO: get rid of that ai slop below
+def find_xmrig():
+    """Locate the xmrig binary on disk. Returns an absolute path or None.
+
+    GUI apps launched by Launch Services on macOS inherit a stripped $PATH
+    (just /usr/bin:/bin:/usr/sbin:/sbin), so the standard "which" approach
+    won't see Homebrew, MacPorts, or user bin dirs. We check a fixed list
+    of common install locations instead.
+
+    Search order:
+      1. $XMRIG_PATH env var (explicit override)
+      2. Homebrew Apple Silicon: /opt/homebrew/bin/xmrig
+      3. Homebrew Intel:         /usr/local/bin/xmrig
+      4. MacPorts:               /opt/local/bin/xmrig
+      5. User bin dirs:          ~/bin/xmrig, ~/.local/bin/xmrig
+      6. Adjacent to the .app    (legacy "same folder" install)
+      7. Next to main.py         (dev fallback when running from source)
+    """
+    def _is_xmrig(path):
+        return (
+            path
+            and os.path.isfile(path)
+            and os.access(path, os.X_OK)
+        )
+
+    # 1. Explicit env override wins.
+    env = os.environ.get("XMRIG_PATH")
+    if _is_xmrig(env):
+        logger.info(f"Using xmrig from XMRIG_PATH: {env}")
+        return env
+
+    # 2-4. Homebrew and MacPorts.
+    for path in (
+        "/opt/homebrew/bin/xmrig",
+        "/usr/local/bin/xmrig",
+        "/opt/local/bin/xmrig",
+    ):
+        if _is_xmrig(path):
+            logger.info(f"Found xmrig at {path}")
+            return path
+
+    # 5. User bin dirs.
+    home = os.path.expanduser("~")
+    for path in (
+        os.path.join(home, "bin", "xmrig"),
+        os.path.join(home, ".local", "bin", "xmrig"),
+    ):
+        if _is_xmrig(path):
+            logger.info(f"Found xmrig at {path}")
+            return path
+
+    # 6. Legacy: xmrig sitting next to XMManager.app in the same folder.
     if getattr(sys, "frozen", False):
-        bundle = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
-        app_parent = os.path.dirname(bundle)
-        return os.path.join(app_parent, name)
-    return os.path.join(os.path.dirname(__file__), name)
+        bundle = os.path.dirname(
+            os.path.dirname(os.path.dirname(sys.executable))
+        )
+        adjacent = os.path.join(os.path.dirname(bundle), "xmrig")
+        if _is_xmrig(adjacent):
+            logger.info(f"Found xmrig at {adjacent}")
+            return adjacent
 
+    # 7. Dev fallback when running from source.
+    if not getattr(sys, "frozen", False):
+        dev_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "xmrig"
+        )
+        if _is_xmrig(dev_path):
+            logger.info(f"Found xmrig at {dev_path}")
+            return dev_path
 
-xmrig_path = adjacent_to_app("xmrig")
-xmrig_command = [xmrig_path, "--cpu-priority=0"]
+    logger.error(
+        "xmrig not found in any standard location. Install via "
+        "`brew install xmrig` or set the XMRIG_PATH environment variable."
+    )
+    return None
 
 
 class Main(rumps.App):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, xmrig_path=None, **kwargs):
         super().__init__(*args, **kwargs)
+        # Resolved path to the xmrig binary, or None if it could not be
+        # located anywhere. The Main.__init__ caller (see __main__) is
+        # responsible for searching; we just store the result.
+        self.xmrig_path = xmrig_path
+        self.xmrig_command = (
+            [xmrig_path, "--cpu-priority=0"] if xmrig_path else None
+        )
         # Popen handle for the running xmrig, or None when stopped.
         # Source of truth for the toggle state.
         self.xmrig_process = None
@@ -67,6 +137,15 @@ class Main(rumps.App):
         # crash, or started a new process) so the timer does not double-
         # notify or clobber a fresh toggle state.
         self._grace_target = None
+
+        # If xmrig was not found at startup, schedule a one-shot quit
+        # notification. We can't call rumps.notification + quit_application
+        # from __init__ because the NSApp run loop hasn't started yet, so
+        # the notification would be dropped and terminate_() would target
+        # an unstarted app. The timer fires once the run loop is alive.
+        self._missing_quit_timer = rumps.Timer(
+            self._handle_missing_xmrig, 0.1
+        )
 
     @rumps.clicked("Toggle XMRig")
     def mining_controller(self, sender):
@@ -123,6 +202,32 @@ class Main(rumps.App):
         logger.info("Exiting...")
         rumps.quit_application()
 
+    def run(self, *args, **kwargs):
+        # If xmrig was not found at startup, fire the missing-quit timer
+        # so it can post a notification and exit the app cleanly. Started
+        # here (not in __init__) because the NSApp run loop has to be
+        # running before NSTimers can be scheduled against it.
+        if self.xmrig_path is None:
+            self._missing_quit_timer.start()
+        super().run(*args, **kwargs)
+
+    def _handle_missing_xmrig(self, _timer):
+        """One-shot callback: tell the user xmrig is missing, then exit.
+
+        Fires from a rumps.Timer started in run() (not __init__) so the
+        NSApp run loop is already up. The timer is repeating under the
+        hood, so we stop it before doing anything to guarantee this is
+        actually one-shot.
+        """
+        self._missing_quit_timer.stop()
+        rumps.notification(
+            "XMManager",
+            "XMRig not found",
+            "Install with `brew install xmrig`, or set the XMRIG_PATH "
+            "environment variable to the binary location. See the README.",
+        )
+        rumps.quit_application()
+
     def _is_running(self):
         proc = self.xmrig_process
         return proc is not None and proc.poll() is None
@@ -145,11 +250,17 @@ class Main(rumps.App):
         """Start xmrig. Returns True once Popen succeeds and the grace
         timer has been armed. The grace timer is responsible for detecting
         an immediate crash and reverting the toggle state."""
+        # Defensive: should be impossible because the app quits via the
+        # missing-quit timer when xmrig_path is None, but guard anyway so
+        # a stray click can't crash the process with a TypeError.
+        if self.xmrig_command is None:
+            logger.error("Cannot start xmrig: binary path not resolved")
+            return False
         if self._is_running():
             return True
         try:
             self.xmrig_process = subprocess.Popen(
-                xmrig_command,
+                self.xmrig_command,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 # Put xmrig in its own process group so signals we receive
@@ -283,7 +394,11 @@ if __name__ == "__main__":
     main_app = None
     try:
         init()
-        main_app = Main("XMManager", quit_button=None)
+        # Resolve xmrig once at startup. If the binary is missing, Main
+        # will show a notification and call rumps.quit_application() from
+        # a timer started inside run() — no special-casing needed here.
+        xmrig = find_xmrig()
+        main_app = Main("XMManager", xmrig_path=xmrig, quit_button=None)
         main_app.run()
     except Exception as e:
         logger.exception(f"Exception: {e}")

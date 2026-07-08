@@ -6,11 +6,17 @@ XMManager is an easy way to manage XMRig on your Mac. It currently allows you to
 
 # Install
 ### Using prebuilt:
-1. Download from releases
-2. Download [XMRig](https://xmrig.com/download) and extract it to the same folder as XMManager 
+1. Download from releases and drag `XMManager.app` to `/Applications`
+2. Install [XMRig](https://xmrig.com/download) somewhere XMManager can find it. The easiest way is `brew install xmrig`, which puts it at `/opt/homebrew/bin/xmrig` (Apple Silicon) or `/usr/local/bin/xmrig` (Intel). Other places XMManager checks automatically:
+	- `$XMRIG_PATH` environment variable (highest priority, useful for custom installs)
+	- `/opt/homebrew/bin/xmrig`, `/usr/local/bin/xmrig`, `/opt/local/bin/xmrig` (Homebrew / MacPorts)
+	- `~/bin/xmrig`, `~/.local/bin/xmrig`
+	- The same folder as `XMManager.app` (legacy "sidecar" install)
 	- Warning - XMRig can get flagged by your antivirus due to malicious programs using it to mine without permission. XMRig is a safe program.
-3. Create a [config.json](https://xmrig.com/docs/miner/config) file and put it in the same folder as the rest. (command line arguments are not yet supported)
+3. Create a [config.json](https://xmrig.com/docs/miner/config) file and place it in the working directory where you launch XMManager. (Command line arguments are not yet supported.)
 4. Run XMManager and have fun mining!
+
+If XMManager can't find xmrig at startup, it shows a notification and quits instead of staying open with a dead toggle. Set `XMRIG_PATH=/full/path/to/xmrig` in your shell profile if you installed it somewhere unusual.
 ### From source:
 
 I don't even remember at this point, too much debugging. I'll add CI soon so I'll update this part once I understand how I built it.
