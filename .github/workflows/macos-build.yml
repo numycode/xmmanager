@@ -5,19 +5,43 @@ on:
     branches: [ main ]
   pull_request:
 
+# Cancel in-progress runs on the same PR/branch when a new commit is
+# pushed. Only on pull_request — main pushes are allowed to run to
+# completion so a release build is never cut off by a follow-up commit.
+concurrency:
+  group: macos-build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# This workflow only reads the repo (checkout, pip cache key). It does
+# not push back, so the token should not be granted write scope.
+permissions:
+  contents: read
+
 jobs:
   build-macos:
     runs-on: macos-latest
+    # py2app on a cold macos-latest runner is ~5–8 min; with the pip
+    # cache warm it drops to ~2–3 min. 20 min is a generous ceiling.
+    timeout-minutes: 20
     strategy:
       matrix:
         python: [3.14]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
+          # Cache pip's download directory so wheels from a previous
+          # run are reused. Key is a hash of all dependency files so
+          # any change to requirements / project metadata invalidates
+          # the cache as expected.
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            pyproject.toml
+            setup.py
 
       - name: Upgrade packaging tools
         run: python -m pip install --upgrade pip "setuptools>=61,<79" wheel py2app rumps
@@ -32,7 +56,7 @@ jobs:
         run: python setup.py py2app
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: macos-app
           path: dist/
