@@ -34,9 +34,3 @@ AI was used in this repository only to make the GitHub Actions runner, a functio
 
 ## Contributors
 - [@rocklake](https://codeberg.org/rocklake/) ([rocklake's GitHub](https://github.com/rocklake/)) - Helped get the code into a usable state since the whole codebase was crumbling 
-
-## This project is now on CodeBerg
-
-You can now find this project at [CodeBerg](https://codeberg.org/numycode/xmmanager/) instead.
-
-Any use of this project's code by GitHub Copilot, past or present, is done without my permission.  I do not consent to GitHub's use of this project's code in Copilot.
