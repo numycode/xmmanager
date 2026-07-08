@@ -75,7 +75,7 @@ class Main(rumps.App):
                 # on the menu bar app don't leak into the child.
                 start_new_session=True,
             )
-        except (OSError, FileNotFoundError) as e:
+        except OSError as e:
             logger.error(f"Error starting xmrig: {e}")
             self.xmrig_process = None
             return False
