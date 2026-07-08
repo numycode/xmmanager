@@ -214,3 +214,9 @@ __marimo__/
 
 # jetbrains' crap
 .idea
+
+# my xmrig config
+config.json
+
+# xmrig itself
+xmirg
