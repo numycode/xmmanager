@@ -62,6 +62,11 @@ class Main(rumps.App):
         # Counter of remaining seconds (in check-interval units) the grace
         # timer should keep firing for the most recent start.
         self._grace_remaining = 0
+        # Handle the grace timer was last armed for. Used by the callback
+        # to detect that the user has already taken action (reconciled a
+        # crash, or started a new process) so the timer does not double-
+        # notify or clobber a fresh toggle state.
+        self._grace_target = None
 
     @rumps.clicked("Toggle XMRig")
     def mining_controller(self, sender):
@@ -71,6 +76,11 @@ class Main(rumps.App):
         # back when we are sure the user did not just click "stop".
         if sender.state and not self._is_running():
             logger.warning("Toggle was checked but xmrig is not running; reconciling")
+            # Clear the dead handle and cancel the grace timer so its
+            # pending tick (if any) does not double-notify the user.
+            self.xmrig_process = None
+            self._startup_check_timer.stop()
+            self._grace_target = None
             rumps.notification(
                 "XMManager",
                 "XMRig stopped unexpectedly",
@@ -153,6 +163,7 @@ class Main(rumps.App):
 
         # Arm the grace timer. Runs on the main run loop, so it is safe to
         # touch menu state from the callback without thread-safe dispatch.
+        self._grace_target = self.xmrig_process
         self._grace_remaining = STARTUP_GRACE_SECONDS
         self._startup_check_timer.stop()
         self._startup_check_timer.start()
@@ -164,9 +175,12 @@ class Main(rumps.App):
         """Timer callback fired on the main run loop during the startup
         grace window. If xmrig died before the window expired, revert the
         toggle state so the menu does not lie about whether mining is on."""
-        # If the process was stopped (or never finished starting) before
-        # the grace window elapsed, just stop polling and bail.
-        if self.xmrig_process is None:
+        # If the process we were watching is no longer the live one, the
+        # user has already acted (reconciled a crash, or started a fresh
+        # process) — bail so we don't double-notify or clobber the new
+        # toggle state. Also covers the case where the process was
+        # stopped before the grace window elapsed.
+        if self._grace_target is not self.xmrig_process:
             self._startup_check_timer.stop()
             return
 
@@ -224,14 +238,21 @@ class Main(rumps.App):
             except (OSError, ProcessLookupError, subprocess.TimeoutExpired) as e:
                 logger.error(f"Error stopping xmrig: {e}")
             finally:
-                # Only clear the live handle if it is still the one we
-                # were stopping. A restart in the meantime would have
-                # replaced self.xmrig_process with a new Popen.
+                # Only clear the live handle and update the menu if xmrig
+                # is still the one we were stopping. A restart in the
+                # meantime would have replaced self.xmrig_process with a
+                # new Popen and the new Popen already owns the UI state
+                # — flipping the checkmark here would lie about it.
                 if self.xmrig_process is target:
                     self.xmrig_process = None
-                # Hop back to the main thread for the menu update.
-                AppHelper.callAfter(self._set_toggle_state, False)
-                logger.info("Stopped XMRig")
+                    # Hop back to the main thread for the menu update.
+                    AppHelper.callAfter(self._set_toggle_state, False)
+                    logger.info("Stopped XMRig")
+                else:
+                    logger.info(
+                        f"Skipping UI update for stopped xmrig (pid {target.pid}); "
+                        f"a new process has taken its place"
+                    )
 
         threading.Thread(target=_shutdown, daemon=True).start()
 
