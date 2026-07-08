@@ -3,9 +3,28 @@ import os
 import sys
 import logging
 import subprocess
-import time
+import threading
+
+from PyObjCTools import AppHelper
 
 logger = logging.getLogger(__name__)
+
+# Grace period after starting xmrig during which we poll for an immediate
+# crash. Anything that exits inside this window almost certainly has a config
+# or permission problem we want to surface, not hide behind a "running" menu
+# state. Matches the original 0.25s sleep.
+STARTUP_GRACE_SECONDS = 0.25
+STARTUP_CHECK_INTERVAL = 0.05
+
+# Timeouts used when stopping xmrig for shutdown paths (quit, exception
+# handler) where the user is waiting on the app to exit.
+SHUTDOWN_SIGTERM_TIMEOUT = 2
+SHUTDOWN_SIGKILL_TIMEOUT = 1
+
+# Timeouts used for the user-facing toggle path. A bit more generous so a
+# well-behaved xmrig can wind down its workers cleanly.
+TOGGLE_SIGTERM_TIMEOUT = 3
+TOGGLE_SIGKILL_TIMEOUT = 2
 
 
 def init(filename="xmmanager.log"):
@@ -32,20 +51,43 @@ class Main(rumps.App):
         # Popen handle for the running xmrig, or None when stopped.
         # Source of truth for the toggle state.
         self.xmrig_process = None
+        # rumps.Timer used to poll xmrig during the startup grace window.
+        # Reused across restarts; we always stop() before start() to avoid
+        # leaking NSTimers into the run loop.
+        self._startup_check_timer = rumps.Timer(
+            self._check_xmrig_startup, STARTUP_CHECK_INTERVAL
+        )
+        # Counter of remaining seconds (in check-interval units) the grace
+        # timer should keep firing for the most recent start.
+        self._grace_remaining = 0
 
     @rumps.clicked("Toggle XMRig")
     def mining_controller(self, sender):
-        # Decide first, then flip the menu. Flipping the menu before
-        # we know whether xmrig actually started was the original bug.
+        # Reconcile stale menu state. rumps does NOT auto-toggle a checkmark
+        # on click, so if xmrig died unexpectedly the checkmark can lie.
+        # Trust process reality over the menu state, but only flip the menu
+        # back when we are sure the user did not just click "stop".
+        if sender.state and not self._is_running():
+            logger.warning("Toggle was checked but xmrig is not running; reconciling")
+            rumps.notification(
+                "XMManager",
+                "XMRig stopped unexpectedly",
+                "Check xmmanager.log for details.",
+            )
+            self._set_toggle_state(False)
+            return
+
         if self._is_running():
-            self._stop_xmrig()
-            sender.state = False
+            self._stop_xmrig_async()
+            # Leave the checkmark visible during the brief cleanup window so
+            # the menu does not flicker. The background thread will clear it
+            # via AppHelper.callAfter once the process is actually gone.
             return
 
         if self._start_xmrig():
-            sender.state = True
+            self._set_toggle_state(True)
         else:
-            sender.state = False
+            self._set_toggle_state(False)
             rumps.notification(
                 "XMManager",
                 "Failed to start XMRig",
@@ -54,7 +96,11 @@ class Main(rumps.App):
 
     @rumps.clicked("Quit")
     def on_quit(self, _):
-        self._stop_xmrig()
+        # Fire-and-forget shutdown. The user clicked Quit, so the app must
+        # actually go away; we do not want to block the run loop on SIGTERM
+        # timeouts. The daemon thread will best-effort terminate xmrig in
+        # the background.
+        self._stop_xmrig_async()
         logger.info("Exiting...")
         rumps.quit_application()
 
@@ -62,8 +108,17 @@ class Main(rumps.App):
         proc = self.xmrig_process
         return proc is not None and proc.poll() is None
 
+    def _set_toggle_state(self, new_state):
+        """Set the checkmark on the toggle menu item from any thread."""
+        # self.menu is a dict-like view of the NSMenu built at run() time.
+        # Look up the item by title so timer / background-thread callbacks
+        # can update state without a sender reference.
+        self.menu["Toggle XMRig"].state = new_state
+
     def _start_xmrig(self):
-        """Start xmrig. Returns True only after it looks like it is running."""
+        """Start xmrig. Returns True once Popen succeeds and the grace
+        timer has been armed. The grace timer is responsible for detecting
+        an immediate crash and reverting the toggle state."""
         if self._is_running():
             return True
         try:
@@ -80,22 +135,85 @@ class Main(rumps.App):
             self.xmrig_process = None
             return False
 
-        # Give xmrig a brief grace period to die on bad config / bad
-        # binary. Anything that exits inside this window almost certainly
-        # has a config or permission problem we want to surface, not hide
-        # behind a "running" menu state.
-        time.sleep(0.25)
-        if self.xmrig_process.poll() is not None:
-            rc = self.xmrig_process.returncode
-            logger.error(f"xmrig exited immediately with code {rc}")
-            self.xmrig_process = None
-            return False
+        # Arm the grace timer. Runs on the main run loop, so it is safe to
+        # touch menu state from the callback without thread-safe dispatch.
+        self._grace_remaining = STARTUP_GRACE_SECONDS
+        self._startup_check_timer.stop()
+        self._startup_check_timer.start()
 
         logger.info("Started XMRig")
         return True
 
-    def _stop_xmrig(self):
-        """Stop the running xmrig, if any. Safe to call multiple times."""
+    def _check_xmrig_startup(self, _timer):
+        """Timer callback fired on the main run loop during the startup
+        grace window. If xmrig died before the window expired, revert the
+        toggle state so the menu does not lie about whether mining is on."""
+        # If the process was stopped (or never finished starting) before
+        # the grace window elapsed, just stop polling and bail.
+        if self.xmrig_process is None:
+            self._startup_check_timer.stop()
+            return
+
+        # Time's up: xmrig survived the grace window, treat it as running.
+        self._grace_remaining -= STARTUP_CHECK_INTERVAL
+        if self._grace_remaining <= 0:
+            self._startup_check_timer.stop()
+            return
+
+        # Crashed early? Revert the toggle so the UI matches reality.
+        if self.xmrig_process.poll() is not None:
+            rc = self.xmrig_process.returncode
+            logger.error(f"xmrig exited immediately with code {rc}")
+            self.xmrig_process = None
+            self._startup_check_timer.stop()
+            self._set_toggle_state(False)
+            rumps.notification(
+                "XMManager",
+                "XMRig stopped unexpectedly",
+                f"Exited with code {rc}. Check xmmanager.log for details.",
+            )
+
+    def _stop_xmrig_async(self):
+        """Stop xmrig on a background thread. Safe to call from main-thread
+        callbacks (rumps click handlers, quit) because the actual
+        terminate/wait/kill can take up to ~5s and we must not block the
+        macOS main run loop."""
+        proc = self.xmrig_process
+        if proc is None or proc.poll() is not None:
+            self.xmrig_process = None
+            return
+
+        # Snapshot the handle so a subsequent start (e.g. user toggles back
+        # on before cleanup finishes) cannot race with this thread.
+        target = proc
+
+        def _shutdown():
+            try:
+                target.terminate()
+                try:
+                    target.wait(timeout=TOGGLE_SIGTERM_TIMEOUT)
+                except subprocess.TimeoutExpired:
+                    logger.warning("xmrig did not exit after SIGTERM, sending SIGKILL")
+                    target.kill()
+                    target.wait(timeout=TOGGLE_SIGKILL_TIMEOUT)
+            except (OSError, ProcessLookupError) as e:
+                logger.error(f"Error stopping xmrig: {e}")
+            finally:
+                # Only clear the live handle if it is still the one we
+                # were stopping. A restart in the meantime would have
+                # replaced self.xmrig_process with a new Popen.
+                if self.xmrig_process is target:
+                    self.xmrig_process = None
+                # Hop back to the main thread for the menu update.
+                AppHelper.callAfter(self._set_toggle_state, False)
+                logger.info("Stopped XMRig")
+
+        threading.Thread(target=_shutdown, daemon=True).start()
+
+    def _stop_xmrig_sync(self, sigterm_timeout, sigkill_timeout):
+        """Synchronous stop for shutdown paths (exception handler) where
+        we are about to os._exit anyway and want a best-effort clean
+        termination first."""
         proc = self.xmrig_process
         if proc is None or proc.poll() is not None:
             self.xmrig_process = None
@@ -103,11 +221,11 @@ class Main(rumps.App):
         try:
             proc.terminate()
             try:
-                proc.wait(timeout=3)
+                proc.wait(timeout=sigterm_timeout)
             except subprocess.TimeoutExpired:
                 logger.warning("xmrig did not exit after SIGTERM, sending SIGKILL")
                 proc.kill()
-                proc.wait(timeout=2)
+                proc.wait(timeout=sigkill_timeout)
         except (OSError, ProcessLookupError) as e:
             logger.error(f"Error stopping xmrig: {e}")
         finally:
@@ -124,6 +242,9 @@ if __name__ == "__main__":
     except Exception as e:
         logger.exception(f"Exception: {e}")
         if main_app is not None:
-            main_app._stop_xmrig()
+            main_app._stop_xmrig_sync(
+                sigterm_timeout=SHUTDOWN_SIGTERM_TIMEOUT,
+                sigkill_timeout=SHUTDOWN_SIGKILL_TIMEOUT,
+            )
         logger.info("Force exiting...")
         os._exit(0)
