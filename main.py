@@ -214,7 +214,7 @@ class Main(rumps.App):
                     logger.warning("xmrig did not exit after SIGTERM, sending SIGKILL")
                     target.kill()
                     target.wait(timeout=TOGGLE_SIGKILL_TIMEOUT)
-            except (OSError, ProcessLookupError) as e:
+            except (OSError, ProcessLookupError, subprocess.TimeoutExpired) as e:
                 logger.error(f"Error stopping xmrig: {e}")
             finally:
                 # Only clear the live handle if it is still the one we
