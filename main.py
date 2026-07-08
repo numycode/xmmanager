@@ -118,7 +118,14 @@ class Main(rumps.App):
         return proc is not None and proc.poll() is None
 
     def _set_toggle_state(self, new_state):
-        """Set the checkmark on the toggle menu item from any thread."""
+        """Set the checkmark on the toggle menu item.
+
+        Must be called on the main thread. Current call sites all satisfy
+        that: rumps click handlers run on the main run loop, the grace
+        timer's callback fires on the main run loop, and the background
+        _stop_xmrig_async thread hops back here via AppHelper.callAfter
+        before calling this method.
+        """
         # self.menu is a dict-like view of the NSMenu built at run() time.
         # Look up the item by title so timer / background-thread callbacks
         # can update state without a sender reference.
@@ -260,9 +267,15 @@ if __name__ == "__main__":
     except Exception as e:
         logger.exception(f"Exception: {e}")
         if main_app is not None:
-            main_app._stop_xmrig_sync(
-                sigterm_timeout=SHUTDOWN_SIGTERM_TIMEOUT,
-                sigkill_timeout=SHUTDOWN_SIGKILL_TIMEOUT,
-            )
+            try:
+                main_app._stop_xmrig_sync(
+                    sigterm_timeout=SHUTDOWN_SIGTERM_TIMEOUT,
+                    sigkill_timeout=SHUTDOWN_SIGKILL_TIMEOUT,
+                )
+            except Exception as stop_err:
+                # Never let a stop failure prevent the force-exit; an
+                # orphaned xmrig is the lesser evil compared to a
+                # process that won't quit at all.
+                logger.error(f"Error stopping xmrig in __main__ handler: {stop_err}")
         logger.info("Force exiting...")
         os._exit(0)
