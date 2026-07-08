@@ -5,58 +5,96 @@ on:
     branches: [ main ]
   pull_request:
 
-# Cancel in-progress runs on the same PR/branch when a new commit is
-# pushed. Only on pull_request — main pushes are allowed to run to
-# completion so a release build is never cut off by a follow-up commit.
 concurrency:
   group: macos-build-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# This workflow only reads the repo (checkout, pip cache key). It does
-# not push back, so the token should not be granted write scope.
 permissions:
   contents: read
 
 jobs:
-  build-macos:
+  lint:
+    name: Lint
     runs-on: macos-latest
-    # py2app on a cold macos-latest runner is ~5–8 min; with the pip
-    # cache warm it drops to ~2–3 min. 20 min is a generous ceiling.
-    timeout-minutes: 20
-    strategy:
-      matrix:
-        python: [3.14]
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python }}
-          # Cache pip's download directory so wheels from a previous
-          # run are reused. Key is a hash of all dependency files so
-          # any change to requirements / project metadata invalidates
-          # the cache as expected.
+          python-version: '3.14'
           cache: 'pip'
           cache-dependency-path: |
             requirements.txt
             pyproject.toml
             setup.py
+      - name: Install ruff
+        run: python -m pip install --upgrade ruff
+      - name: Ruff lint
+        # Informational for now: surfaces style issues without blocking the build.
+        # Tighten to blocking once the existing code is ruff-clean.
+        continue-on-error: true
+        run: ruff check . --output-format=github
+      - name: Ruff format check
+        continue-on-error: true
+        run: ruff format --check . --output-format=github
 
+  build:
+    name: Build
+    needs: lint
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            pyproject.toml
+            setup.py
       - name: Upgrade packaging tools
         run: python -m pip install --upgrade pip "setuptools>=61,<79" wheel py2app rumps
-
       - name: Install runtime dependencies
         run: python -m pip install -r requirements.txt
-
       - name: Install project
         run: python -m pip install .
-
-      - name: Build macOS .app with py2app
+      - name: Build .app with py2app
         run: python setup.py py2app
-
-      - name: Upload build artifact
+      - name: Verify .app structure
+        run: |
+          if [ ! -d "dist/XMManager.app" ]; then
+            echo "::error::dist/XMManager.app was not produced"
+            ls -laR dist/ 2>/dev/null || true
+            exit 1
+          fi
+          {
+            echo "### Build output"
+            echo ""
+            echo "- App bundle: \`dist/XMManager.app\`"
+            echo "- Total size: \`$(du -sh dist/XMManager.app | cut -f1)\`"
+            echo "- Main binary: \`$(file dist/XMManager.app/Contents/MacOS/* | sed 's/.*: //')\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Package as DMG
+        run: |
+          # hdiutil is built into macOS, no install needed.
+          # UDZO = compressed read-only, the standard "drag to Applications" DMG.
+          hdiutil create -volname "XMManager" \
+            -srcfolder dist/XMManager.app \
+            -ov -format UDZO \
+            XMManager.dmg
+          echo "DMG created:"
+          ls -la XMManager.dmg
+          {
+            echo "- DMG: \`XMManager.dmg\`"
+            echo "- DMG size: \`$(du -sh XMManager.dmg | cut -f1)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload DMG
         uses: actions/upload-artifact@v7
         with:
-          name: macos-app
-          path: dist/
+          name: XMManager
+          path: XMManager.dmg
+          archive: false
+          # archive: false is the v7 feature for uploading a single file
+          # without zipping. DMGs are a single file, so the user gets
+          # XMManager.dmg directly instead of XMManager.dmg.zip.

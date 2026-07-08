@@ -1,4 +1,7 @@
 # XMManager
+
+[![macOS build](https://github.com/numycode/xmmanager/actions/workflows/macos-build.yml/badge.svg)](https://github.com/numycode/xmmanager/actions/workflows/macos-build.yml)
+
 XMManager is an easy way to manage XMRig on your Mac. It currently allows you to toggle XMRig for easy use of the miner.
 
 # Install
