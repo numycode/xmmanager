@@ -30,7 +30,7 @@ Watch the video [here](https://cdn.hackclub.com/019df076-974f-7d73-9d7f-e3ed8fa1
 And that is it! Have fun mining!
 
 ## AI Notice
-AI was used in this repository only to make the GitHub Actions runner, a function in the code I'll replace later, and debugging CI. The rest is human-written.
+AI was used in this repository for the GitHub Actions runner, a function flagged for later replacement, CI debugging, and the `mining_controller` refactor that fixed the toggle race and replaced `pkill` with proper PID handling. The rest is human-written.
 
 ## Contributors
 - [@rocklake](https://codeberg.org/rocklake/) ([rocklake's GitHub](https://github.com/rocklake/)) - Helped get the code into a usable state since the whole codebase was crumbling 
