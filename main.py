@@ -17,9 +17,11 @@ STARTUP_GRACE_SECONDS = 0.25
 STARTUP_CHECK_INTERVAL = 0.05
 
 # Timeouts used when stopping xmrig for shutdown paths (quit, exception
-# handler) where the user is waiting on the app to exit.
-SHUTDOWN_SIGTERM_TIMEOUT = 2
-SHUTDOWN_SIGKILL_TIMEOUT = 1
+# handler) where the user is waiting on the app to exit. Kept short so the
+# total wait stays well under macOS's 5s unresponsiveness threshold for a
+# blocking main-thread Quit handler.
+SHUTDOWN_SIGTERM_TIMEOUT = 1
+SHUTDOWN_SIGKILL_TIMEOUT = 0.5
 
 # Timeouts used for the user-facing toggle path. A bit more generous so a
 # well-behaved xmrig can wind down its workers cleanly.
@@ -96,11 +98,18 @@ class Main(rumps.App):
 
     @rumps.clicked("Quit")
     def on_quit(self, _):
-        # Fire-and-forget shutdown. The user clicked Quit, so the app must
-        # actually go away; we do not want to block the run loop on SIGTERM
-        # timeouts. The daemon thread will best-effort terminate xmrig in
-        # the background.
-        self._stop_xmrig_async()
+        # Synchronous shutdown. A daemon background thread would be killed
+        # by the Python interpreter during Cocoa app teardown, leaving
+        # xmrig running as an orphan. We accept a short blocking wait on
+        # the main thread so SIGTERM/SIGKILL actually land before the app
+        # exits. SHUTDOWN_* timeouts keep the total under ~1.5s.
+        try:
+            self._stop_xmrig_sync(
+                sigterm_timeout=SHUTDOWN_SIGTERM_TIMEOUT,
+                sigkill_timeout=SHUTDOWN_SIGKILL_TIMEOUT,
+            )
+        except Exception as e:
+            logger.error(f"Error stopping xmrig on quit: {e}")
         logger.info("Exiting...")
         rumps.quit_application()
 
@@ -154,13 +163,9 @@ class Main(rumps.App):
             self._startup_check_timer.stop()
             return
 
-        # Time's up: xmrig survived the grace window, treat it as running.
-        self._grace_remaining -= STARTUP_CHECK_INTERVAL
-        if self._grace_remaining <= 0:
-            self._startup_check_timer.stop()
-            return
-
         # Crashed early? Revert the toggle so the UI matches reality.
+        # Checked before the grace-expiry branch so a crash on the final
+        # tick is not silently swallowed by the time-up early return.
         if self.xmrig_process.poll() is not None:
             rc = self.xmrig_process.returncode
             logger.error(f"xmrig exited immediately with code {rc}")
@@ -172,16 +177,29 @@ class Main(rumps.App):
                 "XMRig stopped unexpectedly",
                 f"Exited with code {rc}. Check xmmanager.log for details.",
             )
+            return
+
+        # Time's up: xmrig survived the grace window, treat it as running.
+        self._grace_remaining -= STARTUP_CHECK_INTERVAL
+        if self._grace_remaining <= 0:
+            self._startup_check_timer.stop()
 
     def _stop_xmrig_async(self):
         """Stop xmrig on a background thread. Safe to call from main-thread
-        callbacks (rumps click handlers, quit) because the actual
-        terminate/wait/kill can take up to ~5s and we must not block the
-        macOS main run loop."""
+        callbacks (rumps click handlers) because the actual terminate/wait/
+        kill can take up to ~5s and we must not block the macOS main run
+        loop. Quit uses _stop_xmrig_sync instead because the interpreter
+        kills daemon threads during shutdown."""
         proc = self.xmrig_process
         if proc is None or proc.poll() is not None:
             self.xmrig_process = None
             return
+
+        # Cancel the grace timer. If the user stops during the startup
+        # window, the timer would otherwise fire on the next tick, see the
+        # process exiting via SIGTERM, and post a spurious "XMRig stopped
+        # unexpectedly" notification.
+        self._startup_check_timer.stop()
 
         # Snapshot the handle so a subsequent start (e.g. user toggles back
         # on before cleanup finishes) cannot race with this thread.
@@ -226,7 +244,7 @@ class Main(rumps.App):
                 logger.warning("xmrig did not exit after SIGTERM, sending SIGKILL")
                 proc.kill()
                 proc.wait(timeout=sigkill_timeout)
-        except (OSError, ProcessLookupError) as e:
+        except (OSError, ProcessLookupError, subprocess.TimeoutExpired) as e:
             logger.error(f"Error stopping xmrig: {e}")
         finally:
             self.xmrig_process = None
