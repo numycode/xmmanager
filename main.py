@@ -21,7 +21,7 @@ def adjacent_to_app(name):
 
 
 xmrig_path = adjacent_to_app("xmrig")
-xmrig_command = [xmrig_path, "--cpu-priority=1"]
+xmrig_command = [xmrig_path, "--cpu-priority=0"]
 
 class Main(rumps.App):
     @rumps.clicked("Toggle XMRig")
