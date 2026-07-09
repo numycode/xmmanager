@@ -13,7 +13,7 @@ XMManager is an easy way to manage XMRig on your Mac. It currently allows you to
 	- `~/bin/xmrig`, `~/.local/bin/xmrig`
 	- The same folder as `XMManager.app` (legacy "sidecar" install)
 	- Warning - XMRig can get flagged by your antivirus due to malicious programs using it to mine without permission. XMRig is a safe program.
-3. Create a [config.json](https://xmrig.com/docs/miner/config) file and place it in the working directory where you launch XMManager. (Command line arguments are not yet supported.)
+3. Create a [config.json](https://xmrig.com/docs/miner/config) and save it as `~/.xmrig.json` (in your home directory). XMManager passes `--config=$HOME/.xmrig.json` to xmrig automatically, since a menu bar app can't ship a config inside the `.app` bundle. (Other command line arguments are not yet supported.)
 4. Run XMManager and have fun mining!
 
 If XMManager can't find xmrig at startup, it shows a notification and quits instead of staying open with a dead toggle. Set `XMRIG_PATH=/full/path/to/xmrig` in your shell profile if you installed it somewhere unusual.

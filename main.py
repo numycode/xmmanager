@@ -117,8 +117,19 @@ class Main(rumps.App):
         # located anywhere. The Main.__init__ caller (see __main__) is
         # responsible for searching; we just store the result.
         self.xmrig_path = xmrig_path
+        # XMRig defaults to looking for ./config.json in the CWD, which for
+        # a Launch Services-launched menu bar app is "/" and not useful.
+        # Hardcode the user's home dir so a single config file works
+        # regardless of where the .app is installed.
+        self.xmrig_config = os.path.expanduser("~/.xmrig.json")
         self.xmrig_command = (
-            [xmrig_path, "--cpu-priority=0"] if xmrig_path else None
+            [
+                xmrig_path,
+                "--cpu-priority=0",
+                f"--config={self.xmrig_config}",
+            ]
+            if xmrig_path
+            else None
         )
         # Popen handle for the running xmrig, or None when stopped.
         # Source of truth for the toggle state.
