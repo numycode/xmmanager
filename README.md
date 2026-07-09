@@ -10,7 +10,7 @@ XMManager is an easy way to manage XMRig on your Mac. It currently allows you to
 2. Install [XMRig](https://xmrig.com/download) somewhere XMManager can find it. The easiest way is `brew install xmrig`, which puts it at `/opt/homebrew/bin/xmrig` (Apple Silicon) or `/usr/local/bin/xmrig` (Intel). Other places XMManager checks automatically:
 	- `$XMRIG_PATH` environment variable (highest priority, useful for custom installs)
 	- `/opt/homebrew/bin/xmrig`, `/usr/local/bin/xmrig`, `/opt/local/bin/xmrig` (Homebrew / MacPorts)
-	- `~/bin/xmrig`, `~/.local/bin/xmrig`
+	- `~/.local/bin/xmrig`
 	- The same folder as `XMManager.app` (legacy "sidecar" install)
 	- Warning - XMRig can get flagged by your antivirus due to malicious programs using it to mine without permission. XMRig is a safe program.
 3. Create a [config.json](https://xmrig.com/docs/miner/config) and save it as `~/.xmrig.json` (in your home directory). XMManager passes `--config=$HOME/.xmrig.json` to xmrig automatically, since a menu bar app can't ship a config inside the `.app` bundle. (Other command line arguments are not yet supported.)
@@ -39,7 +39,7 @@ Watch the video [here](https://cdn.hackclub.com/019df076-974f-7d73-9d7f-e3ed8fa1
 And that is it! Have fun mining!
 
 ## AI Notice
-AI was used in this repository for the GitHub Actions runner, a function flagged for later replacement, CI debugging, and the `mining_controller` refactor that fixed the toggle race and replaced `pkill` with proper PID handling. The rest is human-written.
+AI was used in this repository for the GitHub Actions runner, a function flagged for later replacement, CI debugging, and a critical bugfix that turned into a full rewrite (my code sucks apparently). The rest is human-written.
 
 ## Contributors
 - [@rocklake](https://codeberg.org/rocklake/) ([rocklake's GitHub](https://github.com/rocklake/)) - Helped get the code into a usable state since the whole codebase was crumbling 
