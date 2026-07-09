@@ -50,6 +50,7 @@ def find_xmrig():
     home = os.path.expanduser("~")
     for path in (
         os.path.join(home, ".local", "bin", "xmrig"),
+        os.path.join(home, "bin", "xmrig"),
     ):
         if _is_xmrig(path):
             logger.info(f"Found xmrig at {path}")
