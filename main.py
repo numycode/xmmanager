@@ -95,6 +95,9 @@ class Main(rumps.App):
                 xmrig_path,
                 "--cpu-priority=0",
                 f"--config={self.xmrig_config}",
+                # xmrig only writes to stdout when it is a TTY or pipe, so a
+                # redirected file stays empty; let xmrig write the file itself.
+                f"--log-file={os.path.join(LOG_DIR, 'xmrig.log')}",
             ]
             if xmrig_path
             else None
