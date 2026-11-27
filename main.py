@@ -1,10 +1,11 @@
-import rumps
-import os
-import sys
 import logging
+import os
 import subprocess
+import sys
 import threading
+from logging.handlers import RotatingFileHandler
 
+import rumps
 from PyObjCTools import AppHelper
 
 logger = logging.getLogger(__name__)
@@ -17,18 +18,26 @@ TOGGLE_SIGTERM_TIMEOUT = 3
 TOGGLE_SIGKILL_TIMEOUT = 2
 
 
-def init(filename="xmmanager.log"):
-    logging.basicConfig(filename=filename, level=logging.INFO)
+def init():
+    log_dir = os.path.expanduser("~/Library/Logs")
+    os.makedirs(log_dir, exist_ok=True)
+    logging.basicConfig(
+        handlers=[
+            RotatingFileHandler(
+                os.path.join(log_dir, "XMManager.log"),
+                maxBytes=1_000_000,
+                backupCount=2,
+            )
+        ],
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     logger.info("Initialized logger")
 
 
 def find_xmrig():
     def _is_xmrig(path):
-        return (
-            path
-            and os.path.isfile(path)
-            and os.access(path, os.X_OK)
-        )
+        return path and os.path.isfile(path) and os.access(path, os.X_OK)
 
     # env
     env = os.environ.get("XMRIG_PATH")
@@ -57,18 +66,14 @@ def find_xmrig():
             return path
     # next to .app
     if getattr(sys, "frozen", False):
-        bundle = os.path.dirname(
-            os.path.dirname(os.path.dirname(sys.executable))
-        )
+        bundle = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
         adjacent = os.path.join(os.path.dirname(bundle), "xmrig")
         if _is_xmrig(adjacent):
             logger.info(f"Found xmrig at {adjacent}")
             return adjacent
     # next to main
     if not getattr(sys, "frozen", False):
-        dev_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "xmrig"
-        )
+        dev_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "xmrig")
         if _is_xmrig(dev_path):
             logger.info(f"Found xmrig at {dev_path}")
             return dev_path
@@ -100,9 +105,7 @@ class Main(rumps.App):
         )
         self._grace_remaining = 0
         self._grace_target = None
-        self._missing_quit_timer = rumps.Timer(
-            self._handle_missing_xmrig, 0.1
-        )
+        self._missing_quit_timer = rumps.Timer(self._handle_missing_xmrig, 0.1)
 
     @rumps.clicked("Toggle XMRig")
     def mining_controller(self, sender):
@@ -114,7 +117,7 @@ class Main(rumps.App):
             rumps.notification(
                 "XMManager",
                 "XMRig stopped unexpectedly",
-                "Check xmmanager.log for details.",
+                "Check XMManager.log in ~/Library/Logs.",
             )
             self._set_toggle_state(False)
             return
@@ -130,7 +133,7 @@ class Main(rumps.App):
             rumps.notification(
                 "XMManager",
                 "Failed to start XMRig",
-                "Check xmmanager.log for details.",
+                "Check XMManager.log in ~/Library/Logs.",
             )
 
     @rumps.clicked("Quit")
@@ -212,7 +215,7 @@ class Main(rumps.App):
             rumps.notification(
                 "XMManager",
                 "XMRig stopped unexpectedly",
-                f"Exited with code {rc}. Check xmmanager.log for details.",
+                f"Exited with code {rc}. Check XMManager.log in ~/Library/Logs.",
             )
             return
 

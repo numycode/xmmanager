@@ -38,6 +38,9 @@ The check mark signifies that XMRig is running. You can click it again and XMRig
 Watch the video [here](https://cdn.hackclub.com/019df076-974f-7d73-9d7f-e3ed8fa12d0d/xmmanager.mp4) to see XMManager in action.<br>
 And that is it! Have fun mining!
 
+## Logs
+XMManager writes to `~/Library/Logs/XMManager.log` (rotated at 1 MB, keeps two backups). Check it when XMRig fails to start.
+
 ## AI Notice
 AI was used in this repository for the GitHub Actions runner, a function flagged for later replacement, CI debugging, and a critical bugfix that turned into a full rewrite (my code sucks apparently). The rest is human-written.
 
