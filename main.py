@@ -95,8 +95,8 @@ class Main(rumps.App):
                 xmrig_path,
                 "--cpu-priority=0",
                 f"--config={self.xmrig_config}",
-                # xmrig only writes to stdout when it is a TTY or pipe, so a
-                # redirected file stays empty; let xmrig write the file itself.
+                # xmrig writes nothing to stdout when it is a regular file, so
+                # it has to write the log file itself.
                 f"--log-file={os.path.join(LOG_DIR, 'xmrig.log')}",
             ]
             if xmrig_path
@@ -187,9 +187,10 @@ class Main(rumps.App):
         if self._is_running():
             return True
         try:
-            # shortcut: truncated on each start, so one very long run grows
-            # xmrig.log without bound; switch to xmrig's own --log-file with
-            # rotation if that ever matters.
+            # Truncate at each start: xmrig appends to an existing file and
+            # never rotates, so this is what bounds the log across runs. It
+            # also catches errors xmrig prints before its log file exists.
+            # shortcut: one very long run still grows xmrig.log without bound.
             with open(os.path.join(LOG_DIR, "xmrig.log"), "wb") as log:
                 self.xmrig_process = subprocess.Popen(
                     self.xmrig_command,
