@@ -9,6 +9,7 @@ import rumps
 from PyObjCTools import AppHelper
 
 logger = logging.getLogger(__name__)
+LOG_DIR = os.path.expanduser("~/Library/Logs")
 
 STARTUP_GRACE_SECONDS = 0.25
 STARTUP_CHECK_INTERVAL = 0.05
@@ -19,12 +20,11 @@ TOGGLE_SIGKILL_TIMEOUT = 2
 
 
 def init():
-    log_dir = os.path.expanduser("~/Library/Logs")
-    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(LOG_DIR, exist_ok=True)
     logging.basicConfig(
         handlers=[
             RotatingFileHandler(
-                os.path.join(log_dir, "XMManager.log"),
+                os.path.join(LOG_DIR, "XMManager.log"),
                 maxBytes=1_000_000,
                 backupCount=2,
             )
@@ -184,12 +184,16 @@ class Main(rumps.App):
         if self._is_running():
             return True
         try:
-            self.xmrig_process = subprocess.Popen(
-                self.xmrig_command,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
+            # shortcut: truncated on each start, so one very long run grows
+            # xmrig.log without bound; switch to xmrig's own --log-file with
+            # rotation if that ever matters.
+            with open(os.path.join(LOG_DIR, "xmrig.log"), "wb") as log:
+                self.xmrig_process = subprocess.Popen(
+                    self.xmrig_command,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
         except OSError as e:
             logger.error(f"Error starting xmrig: {e}")
             self.xmrig_process = None

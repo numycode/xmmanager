@@ -40,6 +40,7 @@ And that is it! Have fun mining!
 
 ## Logs
 XMManager writes to `~/Library/Logs/XMManager.log` (rotated at 1 MB, keeps two backups). Check it when XMRig fails to start.
+XMRig's own output goes to `~/Library/Logs/xmrig.log`, overwritten each time it starts.
 
 ## AI Notice
 AI was used in this repository for the GitHub Actions runner, a function flagged for later replacement, CI debugging, and a critical bugfix that turned into a full rewrite (my code sucks apparently). The rest is human-written.
